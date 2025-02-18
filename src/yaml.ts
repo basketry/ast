@@ -3,17 +3,25 @@ import * as yaml from 'yaml-ast-parser';
 
 import { AST } from '.';
 
-export const parse: AST.ParseFunction = (doc) => {
+export const parse: AST.ParseFunction = (documentIndex, doc) => {
   const node = yaml.load(doc);
   const locator = new Locator(doc);
 
   switch (node.kind) {
     case yaml.Kind.SEQ:
-      return new YamlSequenceNode(node as yaml.YAMLSequence, locator);
+      return new YamlSequenceNode(
+        documentIndex,
+        node as yaml.YAMLSequence,
+        locator,
+      );
     case yaml.Kind.SCALAR:
-      return new YamlScalarNode(node as yaml.YAMLScalar, locator);
+      return new YamlScalarNode(
+        documentIndex,
+        node as yaml.YAMLScalar,
+        locator,
+      );
     case yaml.Kind.MAP:
-      return new YamlMapNode(node as yaml.YamlMap, locator);
+      return new YamlMapNode(documentIndex, node as yaml.YamlMap, locator);
     default:
       throw new Error('Unexpected node kind');
   }
@@ -57,10 +65,11 @@ export abstract class YamlNode<
   implements AST.ASTNode
 {
   constructor(
+    documentIndex: number,
     protected readonly source: TNode,
     protected readonly locator: Locator,
   ) {
-    super();
+    super(documentIndex);
   }
 
   get loc(): Range {
@@ -76,13 +85,13 @@ export class YamlMapNode
   implements AST.ObjectNode
 {
   public readonly type = 'Object';
-  constructor(node: yaml.YamlMap, locator: Locator) {
-    super(node, locator);
+  constructor(documentIndex: number, node: yaml.YamlMap, locator: Locator) {
+    super(documentIndex, node, locator);
   }
 
   get children() {
     return this.source.mappings.map(
-      (child) => new YamlMappingNode(child, this.locator),
+      (child) => new YamlMappingNode(this.documentIndex, child, this.locator),
     );
   }
 }
@@ -92,28 +101,34 @@ export class YamlMappingNode
   implements AST.PropertyNode
 {
   public readonly type = 'Property';
-  constructor(node: yaml.YAMLMapping, locator: Locator) {
-    super(node, locator);
+  constructor(documentIndex: number, node: yaml.YAMLMapping, locator: Locator) {
+    super(documentIndex, node, locator);
   }
 
   get key() {
-    return new YamlKeyNode(this.source.key, this.locator);
+    return new YamlKeyNode(this.documentIndex, this.source.key, this.locator);
   }
 
   get value() {
     switch (this.source.value.kind) {
       case yaml.Kind.SEQ:
         return new YamlSequenceNode(
+          this.documentIndex,
           this.source.value as yaml.YAMLSequence,
           this.locator,
         );
       case yaml.Kind.SCALAR:
         return new YamlScalarNode(
+          this.documentIndex,
           this.source.value as yaml.YAMLScalar,
           this.locator,
         );
       case yaml.Kind.MAP:
-        return new YamlMapNode(this.source.value as yaml.YamlMap, this.locator);
+        return new YamlMapNode(
+          this.documentIndex,
+          this.source.value as yaml.YamlMap,
+          this.locator,
+        );
       default:
         throw new Error('Unexpected node kind');
     }
@@ -125,8 +140,8 @@ export class YamlKeyNode
   implements AST.IdentifierNode
 {
   public readonly type = 'Identifier';
-  constructor(node: yaml.YAMLScalar, locator: Locator) {
-    super(node, locator);
+  constructor(documentIndex: number, node: yaml.YAMLScalar, locator: Locator) {
+    super(documentIndex, node, locator);
   }
 
   get value() {
@@ -140,19 +155,35 @@ export class YamlSequenceNode
   implements AST.ArrayNode
 {
   public readonly type = 'Array';
-  constructor(node: yaml.YAMLSequence, locator: Locator) {
-    super(node, locator);
+  constructor(
+    documentIndex: number,
+    node: yaml.YAMLSequence,
+    locator: Locator,
+  ) {
+    super(documentIndex, node, locator);
   }
 
   get children() {
     return this.source.items.map((child) => {
       switch (child.kind) {
         case yaml.Kind.SEQ:
-          return new YamlSequenceNode(child as yaml.YAMLSequence, this.locator);
+          return new YamlSequenceNode(
+            this.documentIndex,
+            child as yaml.YAMLSequence,
+            this.locator,
+          );
         case yaml.Kind.SCALAR:
-          return new YamlScalarNode(child as yaml.YAMLScalar, this.locator);
+          return new YamlScalarNode(
+            this.documentIndex,
+            child as yaml.YAMLScalar,
+            this.locator,
+          );
         case yaml.Kind.MAP:
-          return new YamlMapNode(child as yaml.YamlMap, this.locator);
+          return new YamlMapNode(
+            this.documentIndex,
+            child as yaml.YamlMap,
+            this.locator,
+          );
         default:
           throw new Error('Unexpected node kind');
       }
@@ -165,8 +196,8 @@ export class YamlScalarNode
   implements AST.LiteralNode
 {
   public readonly type = 'Literal';
-  constructor(node: yaml.YAMLScalar, locator: Locator) {
-    super(node, locator);
+  constructor(documentIndex: number, node: yaml.YAMLScalar, locator: Locator) {
+    super(documentIndex, node, locator);
   }
 
   get value() {
