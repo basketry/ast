@@ -1,6 +1,11 @@
 import { Range } from 'basketry';
 
-export type ParseFunction = (doc: string) => ASTNode;
+/**
+ * The parse function is a function that returns an AST node.
+ * @param documentIndex The index of this document in a documents array. All encoded locations in the AST will point to this document index.
+ * @param doc The document to parse.
+ */
+export type ParseFunction = (documentIndex: number, doc: string) => ASTNode;
 
 export type ValueNode = ObjectNode | ArrayNode | LiteralNode;
 
@@ -12,6 +17,8 @@ export type NodeType =
   | 'Literal';
 
 export interface ASTNode {
+  /** The index of this document in a documents array. All encoded locations in the AST will point to this document index. */
+  readonly documentIndex: number;
   readonly type: NodeType;
   readonly loc: Range;
   isObject(): this is ObjectNode;
@@ -22,6 +29,8 @@ export interface ASTNode {
 }
 
 export abstract class BaseNode implements ASTNode {
+  constructor(readonly documentIndex: number) {}
+
   abstract type: NodeType;
   abstract loc: Range;
 

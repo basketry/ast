@@ -32,18 +32,20 @@ export abstract class DocumentNode {
       : [];
   }
 
+  /** Gets the string-encoded location of the property key if it exists; otherwise, `undefined` */
   keyRange(key: string): string | undefined {
     const prop = this.getProperty(key);
     if (!prop) return;
 
-    return encodeRange(prop.key.loc);
+    return encodeRange(prop.key.documentIndex, prop.key.loc);
   }
 
+  /** Gets the string-encoded location of the property if it exists; otherwise, `undefined` */
   propRange(key: string): string | undefined {
     const prop = this.getProperty(key);
     if (!prop) return;
 
-    return encodeRange(prop.loc);
+    return encodeRange(prop.documentIndex, prop.loc);
   }
 
   protected getChild<T extends DocumentNode>(
